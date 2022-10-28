@@ -1,9 +1,8 @@
-package ed2k_test
+package ed2k
 
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/Kovensky/go-ed2k"
 	"io"
 	"strings"
 	"testing"
@@ -32,7 +31,7 @@ func (vec *testVector) String() string {
 	return fmt.Sprintf("size %d, expected hash %#v %s nullchunk", vec.Size, vec.Hash, mode)
 }
 
-const chunkSize = ed2k.BlockSize
+const chunkSize = BlockSize
 
 var fakeReader = &FakeReader{}
 var vectors = []*testVector{
@@ -47,7 +46,7 @@ var vectors = []*testVector{
 func Test(T *testing.T) {
 	T.Parallel()
 	for i, vec := range vectors {
-		ed2k := ed2k.New(vec.Mode)
+		ed2k := New(vec.Mode)
 		if vec.Size == 0 { // do nothing
 		} else if vec.Size < 0 {
 			io.Copy(ed2k, vec.Data)
@@ -61,7 +60,7 @@ func Test(T *testing.T) {
 }
 
 func Example_hexString() {
-	e := ed2k.New(false)
+	e := New(false)
 	io.Copy(e, strings.NewReader("small example"))
 	fmt.Println(hex.EncodeToString(e.Sum(nil)))
 
@@ -73,7 +72,7 @@ func Example_hexString() {
 }
 
 func Example_noNullChunk() {
-	e := ed2k.New(false)
+	e := New(false)
 	io.Copy(e, strings.NewReader("small example"))
 	h := e.Sum(nil)
 	fmt.Println(h)
@@ -83,7 +82,7 @@ func Example_noNullChunk() {
 func bench(B *testing.B, mode bool, size int64) {
 	B.SetBytes(size)
 
-	ed2k := ed2k.New(mode)
+	ed2k := New(mode)
 	B.ResetTimer()
 	for i := 0; i < B.N; i++ {
 		ed2k.Reset()
