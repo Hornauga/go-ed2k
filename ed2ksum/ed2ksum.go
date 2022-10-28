@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/Kovensky/go-ed2k"
 	"io"
 	"io/ioutil"
 	"os"
@@ -11,6 +10,8 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+
+	ed2k "github.com/kristinnardal2/go-ed2k"
 )
 
 var useNullChunk = flag.Bool("null-chunk", false,
@@ -21,20 +22,24 @@ var checkMode = flag.Bool("c", false,
 var uriMode = flag.Bool("uri", false,
 	`If true, outputs ed2k URIs instead of a verifiable digest.`)
 
-func hashFile(chunkMode bool, path string) (hash string, err error) {
+func hashFile(chunkMode bool, path string) (string, error) {
 	var fh *os.File
+	var err error
 	if path == "-" {
 		fh = os.Stdin
 	} else {
 		fh, err = os.Open(path)
 		if err != nil {
-			return
+			return "", err
 		}
 		defer fh.Close()
 	}
 
 	ed2k := ed2k.New(chunkMode)
-	io.Copy(ed2k, fh)
+	_, err = io.Copy(ed2k, fh)
+	if err != nil {
+		return "", err
+	}
 	return ed2k.(fmt.Stringer).String(), err
 }
 
