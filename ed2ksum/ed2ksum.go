@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"regexp"
 	"runtime"
@@ -133,7 +132,7 @@ func main() {
 				}
 				defer fh.Close()
 			}
-			digest, err := ioutil.ReadAll(fh)
+			digest, err := io.ReadAll(fh)
 			if err != nil {
 				fmt.Fprintln(os.Stderr, err)
 			} else {
