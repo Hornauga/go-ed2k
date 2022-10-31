@@ -43,25 +43,31 @@ var vectors = []*testVector{
 	{Mode: false, Data: fakeReader, Size: 2 * chunkSize, Hash: "194ee9e4fa79b2ee9f8829284c466051"},
 }
 
-func Test(T *testing.T) {
-	T.Parallel()
+func Test(t *testing.T) {
+	t.Parallel()
 	for i, vec := range vectors {
 		ed2k := New(vec.Mode)
 		if vec.Size == 0 { // do nothing
 		} else if vec.Size < 0 {
-			io.Copy(ed2k, vec.Data)
+			_, err := io.Copy(ed2k, vec.Data)
+			if err != nil {
+				t.Fatal(err)
+			}
 		} else {
-			io.CopyN(ed2k, vec.Data, vec.Size)
+			_, err := io.CopyN(ed2k, vec.Data, vec.Size)
+			if err != nil {
+				t.Fatal(err)
+			}
 		}
 		if ed2k.(fmt.Stringer).String() != vec.Hash {
-			T.Errorf("Vector #%d %v did not match expected hash %#v", i, vec, vec.Hash)
+			t.Errorf("Vector #%d %v did not match expected hash %#v", i, vec, vec.Hash)
 		}
 	}
 }
 
 func Example_hexString() {
 	e := New(false)
-	io.Copy(e, strings.NewReader("small example"))
+	_, _ = io.Copy(e, strings.NewReader("small example"))
 	fmt.Println(hex.EncodeToString(e.Sum(nil)))
 
 	// for convenience, ed2k implements Stringer by doing just that
@@ -73,48 +79,52 @@ func Example_hexString() {
 
 func Example_noNullChunk() {
 	e := New(false)
-	io.Copy(e, strings.NewReader("small example"))
+	_, _ = io.Copy(e, strings.NewReader("small example"))
 	h := e.Sum(nil)
 	fmt.Println(h)
 	// Output: [62 1 25 123 197 67 100 203 134 164 23 56 176 106 230 121]
 }
 
-func bench(B *testing.B, mode bool, size int64) {
-	B.SetBytes(size)
+func bench(b *testing.B, mode bool, size int64) {
+	b.Helper()
+	b.SetBytes(size)
 
 	ed2k := New(mode)
-	B.ResetTimer()
-	for i := 0; i < B.N; i++ {
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
 		ed2k.Reset()
-		io.CopyN(ed2k, fakeReader, size)
+		_, err := io.CopyN(ed2k, fakeReader, size)
+		if err != nil {
+			b.Fatal(err)
+		}
 		ed2k.Sum(nil)
 	}
 }
 
-func Benchmark_nullChunk(B *testing.B) {
-	bench(B, true, chunkSize)
+func Benchmark_nullChunk(b *testing.B) {
+	bench(b, true, chunkSize)
 }
 
-func Benchmark_noNullChunk(B *testing.B) {
-	bench(B, false, chunkSize)
+func Benchmark_noNullChunk(b *testing.B) {
+	bench(b, false, chunkSize)
 }
 
-func Benchmark_1MB(B *testing.B) {
-	bench(B, false, 1*1024*1024)
+func Benchmark_1MB(b *testing.B) {
+	bench(b, false, 1*1024*1024)
 }
 
-func Benchmark_10MB(B *testing.B) {
-	bench(B, false, 10*1024*1024)
+func Benchmark_10MB(b *testing.B) {
+	bench(b, false, 10*1024*1024)
 }
 
-func Benchmark_100MB(B *testing.B) {
-	bench(B, false, 100*1024*1024)
+func Benchmark_100MB(b *testing.B) {
+	bench(b, false, 100*1024*1024)
 }
 
-func Benchmark_1GB(B *testing.B) {
-	bench(B, false, 1*1024*1024*1024)
+func Benchmark_1GB(b *testing.B) {
+	bench(b, false, 1*1024*1024*1024)
 }
 
-func Benchmark_10GB(B *testing.B) {
-	bench(B, false, 10*1024*1024*1024)
+func Benchmark_10GB(b *testing.B) {
+	bench(b, false, 10*1024*1024*1024)
 }
