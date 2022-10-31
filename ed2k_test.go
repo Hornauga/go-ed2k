@@ -23,45 +23,38 @@ type testVector struct {
 	Hash string
 }
 
-func (vec *testVector) String() string {
-	mode := "without"
-	if vec.Mode == true {
-		mode = "with"
-	}
-	return fmt.Sprintf("size %d, expected hash %#v %s nullchunk", vec.Size, vec.Hash, mode)
-}
-
 const chunkSize = BlockSize
 
 var fakeReader = &FakeReader{}
-var vectors = []*testVector{
-	{Mode: false, Data: nil, Size: 0, Hash: "31d6cfe0d16ae931b73c59d7e0c089c0"},
-	{Mode: false, Data: strings.NewReader("small example"), Size: -1, Hash: "3e01197bc54364cb86a41738b06ae679"},
-	{Mode: true, Data: fakeReader, Size: chunkSize, Hash: "fc21d9af828f92a8df64beac3357425d"},
-	{Mode: true, Data: fakeReader, Size: 2 * chunkSize, Hash: "114b21c63a74b6ca922291a11177dd5c"},
-	{Mode: false, Data: fakeReader, Size: chunkSize, Hash: "d7def262a127cd79096a108e7a9fc138"},
-	{Mode: false, Data: fakeReader, Size: 2 * chunkSize, Hash: "194ee9e4fa79b2ee9f8829284c466051"},
-}
 
 func Test(t *testing.T) {
-	t.Parallel()
-	for i, vec := range vectors {
-		ed2k := New(vec.Mode)
-		if vec.Size == 0 { // do nothing
-		} else if vec.Size < 0 {
-			_, err := io.Copy(ed2k, vec.Data)
-			if err != nil {
-				t.Fatal(err)
+	for name, vec := range map[string]testVector{
+		"empty string hash":                              {Mode: false, Data: nil, Size: 0, Hash: "31d6cfe0d16ae931b73c59d7e0c089c0"},
+		"\"small example\" hash":                         {Mode: false, Data: strings.NewReader("small example"), Size: -1, Hash: "3e01197bc54364cb86a41738b06ae679"},
+		"new blockchain finishing algorihtm, one block":  {Mode: true, Data: fakeReader, Size: chunkSize, Hash: "fc21d9af828f92a8df64beac3357425d"},
+		"new blockchain finishing algorihtm, two blocks": {Mode: true, Data: fakeReader, Size: 2 * chunkSize, Hash: "114b21c63a74b6ca922291a11177dd5c"},
+		"old blockchain finishing algorihtm, one block":  {Mode: false, Data: fakeReader, Size: chunkSize, Hash: "d7def262a127cd79096a108e7a9fc138"},
+		"old blockchain finishing algorihtm, two blocks": {Mode: false, Data: fakeReader, Size: 2 * chunkSize, Hash: "194ee9e4fa79b2ee9f8829284c466051"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			ed2k := New(vec.Mode)
+			if vec.Size == 0 { // do nothing
+			} else if vec.Size < 0 {
+				_, err := io.Copy(ed2k, vec.Data)
+				if err != nil {
+					t.Error(err)
+				}
+			} else {
+				_, err := io.CopyN(ed2k, vec.Data, vec.Size)
+				if err != nil {
+					t.Error(err)
+				}
 			}
-		} else {
-			_, err := io.CopyN(ed2k, vec.Data, vec.Size)
-			if err != nil {
-				t.Fatal(err)
+			if got := ed2k.(fmt.Stringer).String(); got != vec.Hash {
+				t.Errorf("sum() = %q, expected %q", got, vec.Hash)
 			}
-		}
-		if ed2k.(fmt.Stringer).String() != vec.Hash {
-			t.Errorf("Vector #%d %v did not match expected hash %#v", i, vec, vec.Hash)
-		}
+		})
 	}
 }
 
@@ -95,7 +88,7 @@ func bench(b *testing.B, mode bool, size int64) {
 		ed2k.Reset()
 		_, err := io.CopyN(ed2k, fakeReader, size)
 		if err != nil {
-			b.Fatal(err)
+			b.Error(err)
 		}
 		ed2k.Sum(nil)
 	}
