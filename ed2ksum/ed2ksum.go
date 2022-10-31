@@ -11,7 +11,7 @@ import (
 	"strconv"
 	"strings"
 
-	ed2k "github.com/kristinnardal2/go-ed2k"
+	ed2k "github.com/Hornauga/go-ed2k"
 )
 
 var useNullChunk = flag.Bool("null-chunk", false,
